@@ -8,7 +8,7 @@ def main():
     script_dir = os.path.dirname(os.path.abspath(__file__))
     os.chdir(script_dir)
 
-    # pass monitoring/.env to the child scripts (docker compose reads it on its own)
+    # pass .env to the child scripts (docker compose reads it on its own)
     if os.path.exists(".env"):
         with open(".env") as f:
             for line in f:

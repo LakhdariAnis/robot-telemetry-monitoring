@@ -1,3 +1,7 @@
 mosquitto/data/
 mosquitto/log/
 influxdb/data/
+.env
+__pycache__/
+node_modules/
+mock/stress_test_report.txt.bak

@@ -4,7 +4,7 @@ import os
 from influxdb_client import InfluxDBClient
 
 INFLUX_URL = "http://localhost:8086"
-INFLUX_TOKEN = os.environ.get("INFLUXDB_TOKEN") or sys.exit("INFLUXDB_TOKEN not set: run `set -a; source monitoring/.env; set +a` first")
+INFLUX_TOKEN = os.environ.get("INFLUXDB_TOKEN") or sys.exit("INFLUXDB_TOKEN not set: run `set -a; source .env; set +a` first")
 INFLUX_ORG = "car_org"
 INFLUX_BUCKET = "car_telemetry"
 

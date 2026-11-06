@@ -12,7 +12,7 @@ MQTT_BROKER_HOST = "localhost"
 MQTT_BROKER_PORT = 1883
 
 INFLUX_URL = "http://localhost:8086"
-INFLUX_TOKEN = os.environ.get("INFLUXDB_TOKEN") or sys.exit("INFLUXDB_TOKEN not set: run `set -a; source monitoring/.env; set +a` first")
+INFLUX_TOKEN = os.environ.get("INFLUXDB_TOKEN") or sys.exit("INFLUXDB_TOKEN not set: run `set -a; source .env; set +a` first")
 INFLUX_ORG = "car_org"
 INFLUX_BUCKET = "car_telemetry"
 
@@ -335,7 +335,23 @@ def _run_imu_static_drift_check(influx):
     }
 
 
+def _has_data_before(influx, measurement, seconds_ago):
+    """True if the measurement has any row older than `seconds_ago` (last 30 min)."""
+    flux = f"""
+from(bucket: "{INFLUX_BUCKET}")
+  |> range(start: -30m, stop: -{seconds_ago}s)
+  |> filter(fn: (r) => r["_measurement"] == "{measurement}")
+  |> limit(n: 1)
+"""
+    tables = influx.query_api().query(flux, org=INFLUX_ORG)
+    return any(table.records for table in tables)
+
+
 def _run_slam_low_feature_check(influx):
+    # Window still filling (stream just started): a low count here is not a low rate.
+    if not _has_data_before(influx, "car/slam/pose", SLAM_LOW_FEATURE_WINDOW_S):
+        return None
+
     rows = _query_flux(influx, "car/slam/pose", ["ok"], SLAM_LOW_FEATURE_WINDOW_S)
     total = len(rows)
 
@@ -418,7 +434,8 @@ def main():
                 _write_anomaly_to_influx(influx, payload_dict)
                 _last_state["imu_static_drift"] = current
 
-            result = _run_slam_low_feature_check(influx)
+            # While tracking is lost the pose rate drops anyway; tracking_loss already covers it.
+            result = None if _last_state["tracking_loss"] else _run_slam_low_feature_check(influx)
             current = result["severity"] if result else None
             if current != _last_state["slam_low_feature"]:
                 if current is None:

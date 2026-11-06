@@ -1,3 +1,9 @@
+"""Turn a simulator anomaly on or off over MQTT.
+
+Usage:
+    python3 mock/inject.py list
+    python3 mock/inject.py <anomaly> on|off
+"""
 import json
 import sys
 
@@ -14,6 +20,7 @@ VALID = [
     "phase_timeout",
     "imu_static_drift",
     "trajectory_drift",
+    "slam_low_feature",
 ]
 
 
@@ -54,7 +61,7 @@ def main():
     c = mqtt.Client(client_id="inject_cli")
     c.connect(BROKER_HOST, BROKER_PORT, keepalive=5)
     c.loop_start()
-    c.publish(TOPIC, payload, qos=0)
+    c.publish(TOPIC, payload, qos=0).wait_for_publish(timeout=2)  # without this the process can exit before the message leaves
     c.loop_stop()
 
     print(f"[INJECT] {anomaly} → {'ON' if active else 'OFF'}")
